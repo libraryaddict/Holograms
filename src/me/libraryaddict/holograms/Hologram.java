@@ -226,10 +226,6 @@ public class Hologram {
         return location.clone().subtract(0, 54.6, 0);
     }
 
-    private Location getHaloCenter() {
-        return location;
-    }
-
     public boolean hasPlayer(Player player) {
         return hologramPlayers.contains(player.getName());
     }
@@ -282,9 +278,9 @@ public class Hologram {
         ints = displayPackets[1].getIntegers();
         ints.write(0, horseId);
         ints.write(1, 100);
-        ints.write(2, (int) getLocation().getX() * 32);
-        ints.write(3, (int) (location.getY() * 32));
-        ints.write(4, (int) getLocation().getZ() * 32);
+        ints.write(2, (int) (getLocation().getX() * 32));
+        ints.write(3, (int) ((location.getY() + ((double) height * (getLineSpacing() * 0.285))) * 32));
+        ints.write(4, (int) (getLocation().getZ() * 32));
         // Setup datawatcher
         WrappedDataWatcher watcher = new WrappedDataWatcher();
         watcher.setObject(0, (byte) 0);
