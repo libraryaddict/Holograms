@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -260,7 +259,8 @@ public class Hologram {
         displayPackets = new PacketContainer[lines.length * 3];
         for (int i = 0; i < displayPackets.length; i += 3) {
             Entry<Integer, Integer> entry = itel.next();
-            PacketContainer[] packets = makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[(lines.length - 1) - (i / 3)]);
+            PacketContainer[] packets = makeSpawnPackets(i / 3, entry.getKey(), entry.getValue(), lines[(lines.length - 1)
+                    - (i / 3)]);
             for (int a = 0; a < 3; a++) {
                 displayPackets[i + a] = packets[a];
             }
@@ -274,7 +274,7 @@ public class Hologram {
         StructureModifier<Integer> ints = displayPackets[0].getIntegers();
         ints.write(0, witherId);
         ints.write(1, (int) (getLocation().getX() * 32));
-        ints.write(2, (int) ((location.getY() + ((double) height * (getLineSpacing() * 0.095D))) * 32));
+        ints.write(2, (int) ((location.getY() + ((double) height * (getLineSpacing() * 0.285))) * 32));
         ints.write(3, (int) (getLocation().getZ() * 32));
         ints.write(9, 66);
         // Spawn horse
@@ -327,18 +327,17 @@ public class Hologram {
     public Hologram setLines(String... lines) {
         this.lines = lines;
         if (isInUse()) {
-            makeDisplayPackets();
-            int i = lines.length - 1;
-            int toSend = entityIds.size() / 3;
+            int i = 0;
             ArrayList<Player> players = getPlayers();
 
-            for (Entry<Integer, Integer> entry : entityIds) {
+            for (int s = 0; s < Math.min(entityIds.size(), lines.length); s++) {
+                Entry<Integer, Integer> entry = entityIds.get(s);
                 PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
                 packet.getIntegers().write(0, entry.getValue());
                 ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
                 list.add(new WrappedWatchableObject(0, (byte) 0));
                 list.add(new WrappedWatchableObject(1, (short) 300));
-                list.add(new WrappedWatchableObject(10, lines[i--]));
+                list.add(new WrappedWatchableObject(10, lines[i++]));
                 list.add(new WrappedWatchableObject(11, (byte) 1));
                 list.add(new WrappedWatchableObject(12, -1700000));
                 packet.getWatchableCollectionModifier().write(0, list);
@@ -351,8 +350,7 @@ public class Hologram {
                 }
             }
 
-            // TODO Send remove or create packets depending on how many I'm off.
-            if (lines.length > entityIds.size()) {
+            if (lines.length < entityIds.size()) {
                 // Make delete packets
                 int[] destroyIds = new int[(entityIds.size() - lines.length) * 2];
                 int e = 0;
@@ -371,12 +369,11 @@ public class Hologram {
                     }
                 }
             } else {
-                for (int b = toSend - 1; b < lines.length; b++) {
+                for (; i < lines.length; i++) {
                     Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
                     entityIds.add(entry);
                     // Make create packets
-                    PacketContainer[] packets = this.makeSpawnPackets(b, entry.getKey(), entry.getValue(), lines[lines.length
-                            - (b + 1)]);
+                    PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i++]);
                     for (Player p : players) {
                         try {
                             for (PacketContainer packet : packets) {
@@ -388,24 +385,7 @@ public class Hologram {
                     }
                 }
             }
-            for (Entry<Integer, Integer> entry : entityIds) {
-                PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-                packet.getIntegers().write(0, entry.getValue());
-                ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
-                list.add(new WrappedWatchableObject(0, (byte) 0));
-                list.add(new WrappedWatchableObject(1, (short) 300));
-                list.add(new WrappedWatchableObject(10, lines[i--]));
-                list.add(new WrappedWatchableObject(11, (byte) 1));
-                list.add(new WrappedWatchableObject(12, -1700000));
-                packet.getWatchableCollectionModifier().write(0, list);
-                for (Player p : players) {
-                    try {
-                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
-                    } catch (InvocationTargetException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
+            makeDisplayPackets();
         }
         return this;
     }
