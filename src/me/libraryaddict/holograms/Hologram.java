@@ -240,7 +240,7 @@ public class Hologram {
 
     boolean isVisible(Player player, Location loc) {
         return (getHologramTarget() == HologramTarget.EVERYONE_BUT_THESE_PLAYERS != hasPlayer(player))
-                && loc.getWorld() == getLocation().getWorld() && (loc.distance(getHaloCenter()) <= viewDistance);
+                && loc.getWorld() == getLocation().getWorld() && (loc.distance(getLocation()) <= viewDistance);
     }
 
     private void makeDestroyPacket() {
