@@ -330,14 +330,14 @@ public class Hologram {
             int i = 0;
             ArrayList<Player> players = getPlayers();
 
-            for (int s = 0; s < Math.min(entityIds.size(), lines.length); s++) {
-                Entry<Integer, Integer> entry = entityIds.get(s);
+            for (; i < Math.min(entityIds.size(), lines.length); i++) {
+                Entry<Integer, Integer> entry = entityIds.get(i);
                 PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
                 packet.getIntegers().write(0, entry.getValue());
                 ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
                 list.add(new WrappedWatchableObject(0, (byte) 0));
                 list.add(new WrappedWatchableObject(1, (short) 300));
-                list.add(new WrappedWatchableObject(10, lines[i++]));
+                list.add(new WrappedWatchableObject(10, lines[i]));
                 list.add(new WrappedWatchableObject(11, (byte) 1));
                 list.add(new WrappedWatchableObject(12, -1700000));
                 packet.getWatchableCollectionModifier().write(0, list);
@@ -373,7 +373,7 @@ public class Hologram {
                     Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
                     entityIds.add(entry);
                     // Make create packets
-                    PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i++]);
+                    PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i]);
                     for (Player p : players) {
                         try {
                             for (PacketContainer packet : packets) {
