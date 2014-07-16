@@ -5,6 +5,7 @@
 	<artifactId>Holograms</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<build>
+		<defaultGoal>clean install</defaultGoal>
 		<sourceDirectory>src</sourceDirectory>
 		<plugins>
 			<plugin>
