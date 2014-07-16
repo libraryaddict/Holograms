@@ -256,7 +256,7 @@ public class Hologram {
                         StructureModifier<Integer> ints = packets[i].getIntegers();
                         ints.write(0, entityId.getKey());
                         ints.write(1, x);
-                        ints.write(2, y);
+                        ints.write(2, (int) Math.floor((location.getY() + ((double) i * (getLineSpacing() * 0.285))) * 32));
                         ints.write(3, z);
                         i++;
                     }
