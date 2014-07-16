@@ -208,10 +208,13 @@ public class Hologram {
         if (setNewRelativeLocation && getEntityFollowed() != null) {
             relativeToEntity = getLocation().subtract(getEntityFollowed().getLocation());
         }
+        // If packet is in use
         if (isInUse()) {
+            // Make the new display packets
             makeDisplayPackets();
             ArrayList<Player> newPlayers = getPlayers();
             Iterator<Player> itel = oldPlayers.iterator();
+            // Loop over the old players and send those who can't see the hologram at the new location a destroy packet
             while (itel.hasNext()) {
                 Player p = itel.next();
                 if (!newPlayers.contains(p)) {
@@ -333,41 +336,43 @@ public class Hologram {
                         }
                     }
                 }
-
-                if (lines.length < entityIds.size()) {
-                    // Make delete packets
-                    int[] destroyIds = new int[(entityIds.size() - lines.length) * 2];
-                    int e = 0;
-                    while (entityIds.size() > lines.length) {
-                        Entry<Integer, Integer> entry = entityIds.remove(entityIds.size() - 1);
-                        destroyIds[e++] = entry.getKey();
-                        destroyIds[e++] = entry.getValue();
-                    }
-                    PacketContainer destroyPacket = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
-                    destroyPacket.getIntegerArrays().write(0, destroyIds);
-                    for (Player p : players) {
-                        try {
-                            ProtocolLibrary.getProtocolManager().sendServerPacket(p, destroyPacket, false);
-                        } catch (InvocationTargetException b) {
-                            b.printStackTrace();
+                if (lines.length != entityIds.size()) {
+                    if (lines.length < entityIds.size()) {
+                        // Make delete packets
+                        int[] destroyIds = new int[(entityIds.size() - lines.length) * 2];
+                        int e = 0;
+                        while (entityIds.size() > lines.length) {
+                            Entry<Integer, Integer> entry = entityIds.remove(entityIds.size() - 1);
+                            destroyIds[e++] = entry.getKey();
+                            destroyIds[e++] = entry.getValue();
                         }
-                    }
-                } else {
-                    for (; i < lines.length; i++) {
-                        Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
-                        entityIds.add(entry);
-                        // Make create packets
-                        PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i]);
+                        PacketContainer destroyPacket = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
+                        destroyPacket.getIntegerArrays().write(0, destroyIds);
                         for (Player p : players) {
                             try {
-                                for (PacketContainer packet : packets) {
-                                    ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
+                                ProtocolLibrary.getProtocolManager().sendServerPacket(p, destroyPacket, false);
+                            } catch (InvocationTargetException b) {
+                                b.printStackTrace();
+                            }
+                        }
+                    } else if (lines.length > entityIds.size()) {
+                        for (; i < lines.length; i++) {
+                            Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
+                            entityIds.add(entry);
+                            // Make create packets
+                            PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i]);
+                            for (Player p : players) {
+                                try {
+                                    for (PacketContainer packet : packets) {
+                                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
+                                    }
+                                } catch (InvocationTargetException e) {
+                                    e.printStackTrace();
                                 }
-                            } catch (InvocationTargetException e) {
-                                e.printStackTrace();
                             }
                         }
                     }
+                    makeDestroyPacket();
                 }
                 makeDisplayPackets();
             } else {
