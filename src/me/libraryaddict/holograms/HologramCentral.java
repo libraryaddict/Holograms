@@ -37,13 +37,13 @@ public class HologramCentral implements Listener {
         BukkitRunnable runnable = new BukkitRunnable() {
             public void run() {
                 for (Hologram hologram : new ArrayList<Hologram>(holograms)) {
-                    if (hologram.getRelativeEntity() != null) {
-                        Entity entity = hologram.getRelativeEntity();
+                    if (hologram.getEntityFollowed() != null) {
+                        Entity entity = hologram.getEntityFollowed();
                         if (!entity.isValid() && (!(entity instanceof Player) || !((Player) entity).isOnline())) {
                             if (hologram.isRemovedOnEntityDeath()) {
                                 removeHologram(hologram);
                             } else {
-                                hologram.setMoveRelative(null);
+                                hologram.setFollowEntity(null);
                             }
                         } else {
                             Location loc1 = hologram.entityLastLocation;
