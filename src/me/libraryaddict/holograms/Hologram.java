@@ -22,7 +22,7 @@ import com.comphenix.protocol.wrappers.WrappedWatchableObject;
 
 public class Hologram {
     public enum HologramTarget {
-        EVERYONE_BUT_THESE_PLAYERS, ONLY_THESE_PLAYERS;
+        BLACKLIST, WHITELIST;
     }
 
     private static int getId() {
@@ -44,7 +44,7 @@ public class Hologram {
     private PacketContainer[] displayPackets;
     private ArrayList<Entry<Integer, Integer>> entityIds = new ArrayList<Entry<Integer, Integer>>();
     private ArrayList<String> hologramPlayers = new ArrayList<String>();
-    private HologramTarget hologramTarget = HologramTarget.EVERYONE_BUT_THESE_PLAYERS;
+    private HologramTarget hologramTarget = HologramTarget.BLACKLIST;
     private String[] lines;
     private double lineSpacing = 1;
     private Location location;
@@ -210,7 +210,7 @@ public class Hologram {
         return displayPackets;
     }
 
-    public HologramTarget getHologramTarget() {
+    public HologramTarget getTarget() {
         return hologramTarget;
     }
 
@@ -235,7 +235,7 @@ public class Hologram {
     }
 
     boolean isVisible(Player player, Location loc) {
-        return (getHologramTarget() == HologramTarget.EVERYONE_BUT_THESE_PLAYERS != hasPlayer(player))
+        return (getTarget() == HologramTarget.BLACKLIST != hasPlayer(player))
                 && loc.getWorld() == getLocation().getWorld() && (loc.distance(getLocation()) <= viewDistance);
     }
 
@@ -309,8 +309,8 @@ public class Hologram {
         return this;
     }
 
-    public Hologram setHologramTarget(HologramTarget target) {
-        if (target != getHologramTarget()) {
+    public Hologram setTarget(HologramTarget target) {
+        if (target != getTarget()) {
             hologramTarget = target;
             if (isInUse()) {
                 HologramCentral.removeHologram(this);
