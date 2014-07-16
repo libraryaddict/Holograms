@@ -279,11 +279,11 @@ public class Hologram {
         ints.write(0, horseId);
         ints.write(1, 100);
         ints.write(2, (int) (getLocation().getX() * 32));
-        ints.write(3, (int) ((location.getY() + ((double) height * (getLineSpacing() * 0.285))) * 32));
+        ints.write(3, (int) ((location.getY() + ((double) height * (getLineSpacing() * 0.285)) + 0.23D) * 32));
         ints.write(4, (int) (getLocation().getZ() * 32));
         // Setup datawatcher
         WrappedDataWatcher watcher = new WrappedDataWatcher();
-        watcher.setObject(0, (byte) 1);
+        watcher.setObject(0, (byte) 0);
         watcher.setObject(1, (short) 300);
         watcher.setObject(10, horseName);
         watcher.setObject(11, (byte) 1);
@@ -331,7 +331,7 @@ public class Hologram {
                 PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
                 packet.getIntegers().write(0, entry.getValue());
                 ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
-                list.add(new WrappedWatchableObject(0, (byte) 1));
+                list.add(new WrappedWatchableObject(0, (byte) 0));
                 list.add(new WrappedWatchableObject(1, (short) 300));
                 list.add(new WrappedWatchableObject(10, lines[i]));
                 list.add(new WrappedWatchableObject(11, (byte) 1));
@@ -350,7 +350,7 @@ public class Hologram {
                 // Make delete packets
                 int[] destroyIds = new int[(entityIds.size() - lines.length) * 2];
                 int e = 0;
-                while (entityIds.size() != lines.length) {
+                while (entityIds.size() > lines.length) {
                     Entry<Integer, Integer> entry = entityIds.remove(entityIds.size() - 1);
                     destroyIds[e++] = entry.getKey();
                     destroyIds[e++] = entry.getValue();
@@ -382,6 +382,17 @@ public class Hologram {
                 }
             }
             makeDisplayPackets();
+        } else {
+            if (lines.length < entityIds.size()) {
+                while (entityIds.size() > lines.length) {
+                    entityIds.remove(entityIds.size() - 1);
+                }
+            } else {
+                for (int i = entityIds.size(); i < lines.length; i++) {
+                    Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
+                    entityIds.add(entry);
+                }
+            }
         }
         return this;
     }
@@ -408,7 +419,7 @@ public class Hologram {
 
     public Hologram startHologram() {
         if (!isInUse()) {
-            for (int i = 0; i < lines.length; i++) {
+            for (int i = entityIds.size(); i < lines.length; i++) {
                 int entityId = getId();
                 this.entityIds.add(new HashMap.SimpleEntry(getId(), entityId));
             }
