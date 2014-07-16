@@ -283,7 +283,7 @@ public class Hologram {
         ints.write(4, (int) (getLocation().getZ() * 32));
         // Setup datawatcher
         WrappedDataWatcher watcher = new WrappedDataWatcher();
-        watcher.setObject(0, (byte) 0);
+        watcher.setObject(0, (byte) 1);
         watcher.setObject(1, (short) 300);
         watcher.setObject(10, horseName);
         watcher.setObject(11, (byte) 1);
@@ -331,7 +331,7 @@ public class Hologram {
                 PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
                 packet.getIntegers().write(0, entry.getValue());
                 ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
-                list.add(new WrappedWatchableObject(0, (byte) 0));
+                list.add(new WrappedWatchableObject(0, (byte) 1));
                 list.add(new WrappedWatchableObject(1, (short) 300));
                 list.add(new WrappedWatchableObject(10, lines[i]));
                 list.add(new WrappedWatchableObject(11, (byte) 1));
