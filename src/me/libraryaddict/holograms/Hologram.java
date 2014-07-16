@@ -435,4 +435,8 @@ public class Hologram {
         return this;
     }
 
+    public Hologram stop() {
+        return remove();
+    }
+
 }
