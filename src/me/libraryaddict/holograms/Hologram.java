@@ -305,76 +305,81 @@ public class Hologram {
     }
 
     public Hologram setLines(String... lines) {
-        this.lines = lines;
-        if (isInUse()) {
-            int i = 0;
-            ArrayList<Player> players = getPlayers();
+        if (!this.lines.equals(lines)) {
+            String[] oldLines = this.lines;
+            this.lines = lines;
+            if (isInUse()) {
+                int i = 0;
+                ArrayList<Player> players = getPlayers();
 
-            for (; i < Math.min(entityIds.size(), lines.length); i++) {
-                Entry<Integer, Integer> entry = entityIds.get(i);
-                PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-                packet.getIntegers().write(0, entry.getValue());
-                ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
-                list.add(new WrappedWatchableObject(0, (byte) 0));
-                list.add(new WrappedWatchableObject(1, (short) 300));
-                list.add(new WrappedWatchableObject(10, lines[i]));
-                list.add(new WrappedWatchableObject(11, (byte) 1));
-                list.add(new WrappedWatchableObject(12, -1700000));
-                packet.getWatchableCollectionModifier().write(0, list);
-                for (Player p : players) {
-                    try {
-                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
-                    } catch (InvocationTargetException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            if (lines.length < entityIds.size()) {
-                // Make delete packets
-                int[] destroyIds = new int[(entityIds.size() - lines.length) * 2];
-                int e = 0;
-                while (entityIds.size() > lines.length) {
-                    Entry<Integer, Integer> entry = entityIds.remove(entityIds.size() - 1);
-                    destroyIds[e++] = entry.getKey();
-                    destroyIds[e++] = entry.getValue();
-                }
-                PacketContainer destroyPacket = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
-                destroyPacket.getIntegerArrays().write(0, destroyIds);
-                for (Player p : players) {
-                    try {
-                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, destroyPacket, false);
-                    } catch (InvocationTargetException b) {
-                        b.printStackTrace();
-                    }
-                }
-            } else {
-                for (; i < lines.length; i++) {
-                    Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
-                    entityIds.add(entry);
-                    // Make create packets
-                    PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i]);
-                    for (Player p : players) {
-                        try {
-                            for (PacketContainer packet : packets) {
+                for (; i < Math.min(entityIds.size(), lines.length); i++) {
+                    if (oldLines.length <= i || !oldLines[i].equals(lines[i])) {
+                        Entry<Integer, Integer> entry = entityIds.get(i);
+                        PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
+                        packet.getIntegers().write(0, entry.getValue());
+                        ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
+                        list.add(new WrappedWatchableObject(0, (byte) 0));
+                        list.add(new WrappedWatchableObject(1, (short) 300));
+                        list.add(new WrappedWatchableObject(10, lines[i]));
+                        list.add(new WrappedWatchableObject(11, (byte) 1));
+                        list.add(new WrappedWatchableObject(12, -1700000));
+                        packet.getWatchableCollectionModifier().write(0, list);
+                        for (Player p : players) {
+                            try {
                                 ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
+                            } catch (InvocationTargetException e) {
+                                e.printStackTrace();
                             }
-                        } catch (InvocationTargetException e) {
-                            e.printStackTrace();
                         }
                     }
                 }
-            }
-            makeDisplayPackets();
-        } else {
-            if (lines.length < entityIds.size()) {
-                while (entityIds.size() > lines.length) {
-                    entityIds.remove(entityIds.size() - 1);
+
+                if (lines.length < entityIds.size()) {
+                    // Make delete packets
+                    int[] destroyIds = new int[(entityIds.size() - lines.length) * 2];
+                    int e = 0;
+                    while (entityIds.size() > lines.length) {
+                        Entry<Integer, Integer> entry = entityIds.remove(entityIds.size() - 1);
+                        destroyIds[e++] = entry.getKey();
+                        destroyIds[e++] = entry.getValue();
+                    }
+                    PacketContainer destroyPacket = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
+                    destroyPacket.getIntegerArrays().write(0, destroyIds);
+                    for (Player p : players) {
+                        try {
+                            ProtocolLibrary.getProtocolManager().sendServerPacket(p, destroyPacket, false);
+                        } catch (InvocationTargetException b) {
+                            b.printStackTrace();
+                        }
+                    }
+                } else {
+                    for (; i < lines.length; i++) {
+                        Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
+                        entityIds.add(entry);
+                        // Make create packets
+                        PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i]);
+                        for (Player p : players) {
+                            try {
+                                for (PacketContainer packet : packets) {
+                                    ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
+                                }
+                            } catch (InvocationTargetException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
+                makeDisplayPackets();
             } else {
-                for (int i = entityIds.size(); i < lines.length; i++) {
-                    Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
-                    entityIds.add(entry);
+                if (lines.length < entityIds.size()) {
+                    while (entityIds.size() > lines.length) {
+                        entityIds.remove(entityIds.size() - 1);
+                    }
+                } else {
+                    for (int i = entityIds.size(); i < lines.length; i++) {
+                        Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
+                        entityIds.add(entry);
+                    }
                 }
             }
         }
