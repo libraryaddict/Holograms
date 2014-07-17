@@ -247,10 +247,8 @@ public class Hologram {
                     }
                 } else {
                     x = (int) Math.floor(32 * location.getX());
-                    y = (int) Math.floor(32 * location.getY());
                     z = (int) Math.floor(32 * location.getZ());
-                    lastMovement = new Location(null, location.getX() - (x / 32D), location.getY() - (y / 32D), location.getZ()
-                            - (z / 32D));
+                    lastMovement = new Location(null, location.getX() - (x / 32D), 0, location.getZ() - (z / 32D));
                     for (Entry<Integer, Integer> entityId : this.entityIds) {
                         packets[i] = new PacketContainer(PacketType.Play.Server.ENTITY_TELEPORT);
                         StructureModifier<Integer> ints = packets[i].getIntegers();
