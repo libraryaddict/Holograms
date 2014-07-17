@@ -52,8 +52,11 @@ public class Hologram {
     private double lineSpacing = 1;
     private Location location;
     private Vector moveVector;
+    private boolean pitchControlsMoreThanY;
     private Entity relativeEntity;
-    private Location relativeToEntity = new Location(null, 0, 0, 0);
+    private Location relativeToEntity;
+    private boolean setRelativePitch;
+    private boolean setRelativeYaw;
     private int viewDistance = 70;
 
     public Hologram(Location location, String... lines) {
@@ -129,6 +132,18 @@ public class Hologram {
         return HologramCentral.isInUse(this);
     }
 
+    public boolean isRelativePitch() {
+        return setRelativePitch;
+    }
+
+    public boolean isRelativePitchControlMoreThanHeight() {
+        return pitchControlsMoreThanY;
+    }
+
+    public boolean isRelativeYaw() {
+        return setRelativeYaw;
+    }
+
     public boolean isRemovedOnEntityDeath() {
         return this.keepAliveAfterEntityDies;
     }
@@ -201,10 +216,10 @@ public class Hologram {
         return this;
     }
 
-    public Hologram moveHologram(Location location, boolean setNewRelativeLocation) {
+    public Hologram moveHologram(Location newLocation, boolean setNewRelativeLocation) {
         ArrayList<Player> oldPlayers = getPlayers();
         Location loc = getLocation();
-        this.location = location.clone().add(0, 54.6, 0);
+        this.location = newLocation.clone().add(0, 54.6, 0);
         if (setNewRelativeLocation && getEntityFollowed() != null) {
             relativeToEntity = getLocation().subtract(getEntityFollowed().getLocation());
         }
@@ -296,11 +311,24 @@ public class Hologram {
     }
 
     public Hologram setFollowEntity(Entity entity, boolean isRemoveOnEntityDeath) {
+        return this;
+    }
+
+    public Hologram setFollowEntity(Entity entity, boolean isRemoveOnEntityDeath, boolean setRelativeYaw,
+            boolean setRelativePitch, boolean pitchControlsMoreThanY) {
         relativeEntity = entity;
         if (entity != null) {
             this.keepAliveAfterEntityDies = isRemoveOnEntityDeath;
             relativeToEntity = getLocation().subtract(entity.getLocation());
             entityLastLocation = entity.getLocation();
+            Location l = entity.getLocation();
+            if (setRelativeYaw || setRelativePitch) {
+                relativeToEntity.setPitch(l.getPitch());
+                relativeToEntity.setYaw(l.getYaw());
+                this.setRelativePitch = setRelativePitch;
+                this.setRelativeYaw = setRelativeYaw;
+                this.pitchControlsMoreThanY = pitchControlsMoreThanY;
+            }
         }
         return this;
     }

@@ -20,7 +20,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketContainer;
 
@@ -48,13 +47,20 @@ public class HologramCentral implements Listener {
                         } else {
                             Location loc1 = hologram.entityLastLocation;
                             Location loc2 = entity.getLocation();
-                            if (loc1.getX() != loc2.getX() || loc1.getY() != loc2.getY() || loc1.getZ() != loc2.getZ()) {
+                            if (!loc1.equals(loc2)) {
                                 // Here I figure out where the hologram moved to.
                                 hologram.entityLastLocation = loc2;
-                                Location newLoc = loc2.clone().add(hologram.getRelativeToEntity());
-                                // Note I'm not setting a new relative position. I'm just moving it relative to the entity
-                                // So I don't give a fig for the holograms location. Just for the entity location and the new
-                                // relative location.
+                                Location toAdd = hologram.getRelativeToEntity();
+                                if (hologram.isRelativePitch() || hologram.isRelativeYaw()) {
+                                    if (hologram.isRelativePitchControlMoreThanHeight()) {
+                                        // TODO Calculate new height based on how high the entity is looking.
+                                        // The max height difference can be 30 for now.
+                                        // TODO Calculate new X Z as a circle around the player
+                                    } else {
+                                        // TODO Calculate new X Y Z as a sphere.
+                                    }
+                                }
+                                Location newLoc = loc2.clone().add(toAdd);
                                 hologram.moveHologram(newLoc, false);
                             }
                         }
