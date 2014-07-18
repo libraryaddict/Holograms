@@ -320,7 +320,8 @@ public class Hologram {
         if (entity != null) {
             this.keepAliveAfterEntityDies = isRemoveOnEntityDeath;
             relativeToEntity = getLocation().subtract(entity.getLocation());
-            entityLastLocation = entity.getLocation();
+            entityLastLocation = new Location(entity.getWorld(), 0, 0, 0); // Set this to zero so it is forced to update the location.
+            //entityLastLocation = entity.getLocation();
             Location l = entity.getLocation();
             if (setRelativeYaw || setRelativePitch) {
                 relativeToEntity.setPitch(l.getPitch());

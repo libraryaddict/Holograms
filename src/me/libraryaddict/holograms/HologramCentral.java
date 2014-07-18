@@ -46,22 +46,28 @@ public class HologramCentral implements Listener {
                             }
                         } else {
                             Location loc1 = hologram.entityLastLocation;
-                            Location loc2 = entity.getLocation();
-                            if (!loc1.equals(loc2)) {
+                            Location entityLocation = entity.getLocation();
+                            if (!loc1.equals(entityLocation)) {
                                 // Here I figure out where the hologram moved to.
-                                hologram.entityLastLocation = loc2;
-                                Location toAdd = hologram.getRelativeToEntity();
+                                hologram.entityLastLocation = entityLocation;
+                                Location relativeLocation = hologram.getRelativeToEntity();
                                 if (hologram.isRelativePitch() || hologram.isRelativeYaw()) {
                                     if (hologram.isRelativePitchControlMoreThanHeight()) {
                                         // TODO Calculate new height based on how high the entity is looking.
                                         // The max height difference can be 30 for now.
                                         // TODO Calculate new X Z as a circle around the player
+
+                                        // Rotate the relative location around the entity location using yaw only?????
+                                        Location rotatedLocation = rotateLocation(entityLocation, relativeLocation, entityLocation.getYaw(), 0);
+                                        // Do something to the Y?, Im not sure what you wanted here.
+                                        //rotatedLocation.setY();
+                                        hologram.moveHologram(rotatedLocation, false);
                                     } else {
-                                        // TODO Calculate new X Y Z as a sphere.
+                                        // Rotate the relative location around the entity location using the pitch and yaw.
+                                        Location rotatedLocation = rotateLocation(entityLocation, relativeLocation, entityLocation.getYaw(), entityLocation.getPitch());
+                                        hologram.moveHologram(rotatedLocation, false);
                                     }
                                 }
-                                Location newLoc = loc2.clone().add(toAdd);
-                                hologram.moveHologram(newLoc, false);
                             }
                         }
                     }
@@ -223,5 +229,20 @@ public class HologramCentral implements Listener {
     public void onWorldSwitch(PlayerChangedWorldEvent event) {
         viewableHolograms.remove(event.getPlayer().getName());
         doCheck(event.getPlayer(), event.getPlayer().getLocation());
+    }
+
+    private static Location rotateLocation(Location origin, Location relativeLocation, float yaw, float pitch) {
+        double yawRadians = Math.toRadians(-yaw);
+        double pitchRadians = Math.toRadians(pitch);
+
+        double rx = relativeLocation.getX();
+        double ry = relativeLocation.getY();
+        double rz = relativeLocation.getZ();
+
+        double x = rx * Math.cos(yawRadians) + (ry * Math.sin(pitchRadians) + rz * Math.cos(pitchRadians)) * Math.sin(yawRadians);
+        double y = ry * Math.cos(pitchRadians) - rz * Math.sin(pitchRadians);
+        double z = -rx * Math.sin(yawRadians) + (ry * Math.sin(pitchRadians) + rz * Math.cos(pitchRadians)) * Math.cos(yawRadians);
+
+        return new Location(origin.getWorld(), origin.getX() + x, origin.getY() + y, origin.getZ() + z);
     }
 }
