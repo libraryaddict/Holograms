@@ -323,8 +323,13 @@ public class Hologram {
             entityLastLocation = entity.getLocation();
             Location l = entity.getLocation();
             if (setRelativeYaw || setRelativePitch) {
-                relativeToEntity.setPitch(l.getPitch());
-                relativeToEntity.setYaw(l.getYaw());
+                float yaw = 180 + (float) Math.toDegrees(Math.atan2(relativeToEntity.getX(), -relativeToEntity.getZ()));
+                float pitch = (float) Math.toDegrees(Math.atan2(
+                        -relativeToEntity.getY(),
+                        Math.sqrt((relativeToEntity.getX() * relativeToEntity.getX())
+                                + (relativeToEntity.getZ() * relativeToEntity.getZ()))));
+                relativeToEntity.setPitch(pitch - l.getPitch());
+                relativeToEntity.setYaw(yaw - l.getYaw());
                 this.setRelativePitch = setRelativePitch;
                 this.setRelativeYaw = setRelativeYaw;
                 this.pitchControlsMoreThanY = pitchControlsMoreThanY;

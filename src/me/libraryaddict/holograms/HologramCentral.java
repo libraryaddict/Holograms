@@ -20,6 +20,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketContainer;
 
@@ -52,13 +53,18 @@ public class HologramCentral implements Listener {
                                 hologram.entityLastLocation = loc2;
                                 Location toAdd = hologram.getRelativeToEntity();
                                 if (hologram.isRelativePitch() || hologram.isRelativeYaw()) {
+                                    double r = Math.sqrt((toAdd.getX() * toAdd.getX()) + (toAdd.getY() * toAdd.getY())
+                                            + (toAdd.getZ() * toAdd.getZ()));
                                     if (hologram.isRelativePitchControlMoreThanHeight()) {
                                         // TODO Calculate new height based on how high the entity is looking.
                                         // The max height difference can be 30 for now.
                                         // TODO Calculate new X Z as a circle around the player
                                     } else {
+                                        toAdd = rotateRelative(r, (loc2.getYaw() + toAdd.getYaw()) + 90,
+                                                (loc2.getPitch() + toAdd.getPitch()) + 90);
                                         // TODO Calculate new X Y Z as a sphere.
                                     }
+                                    toAdd.setWorld(loc2.getWorld());
                                 }
                                 Location newLoc = loc2.clone().add(toAdd);
                                 hologram.moveHologram(newLoc, false);
@@ -159,6 +165,16 @@ public class HologramCentral implements Listener {
                 }
             }
         }
+    }
+
+    public static Location rotateRelative(double r, float yaw, float pitch) {
+        double sRadians = Math.toRadians(yaw);
+        double tRadians = Math.toRadians(pitch);
+
+        double x = r * Math.cos(sRadians) * Math.sin(tRadians);
+        double z = r * Math.sin(sRadians) * Math.sin(tRadians);
+        double y = r * Math.cos(tRadians);
+        return new Location(null, x, y, z);
     }
 
     private void doCheck(Player p, Location loc) {
