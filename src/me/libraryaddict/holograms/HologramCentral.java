@@ -53,14 +53,13 @@ public class HologramCentral implements Listener {
                                 Location relativeLocation = hologram.getRelativeToEntity();
                                 if (hologram.isRelativePitch() || hologram.isRelativeYaw()) {
                                     if (hologram.isRelativePitchControlMoreThanHeight()) {
-                                        // TODO Calculate new height based on how high the entity is looking.
-                                        // The max height difference can be 30 for now.
-                                        // TODO Calculate new X Z as a circle around the player
-
-                                        // Rotate the relative location around the entity location using yaw only?????
+                                        // Rotate the relative location around the entity location using yaw only.
                                         Location rotatedLocation = rotateLocation(entityLocation, relativeLocation, entityLocation.getYaw(), 0);
-                                        // Do something to the Y?, Im not sure what you wanted here.
-                                        //rotatedLocation.setY();
+                                        // Set the Y using pitch and relative distance.
+                                        double yDiff = Math.tan(Math.toRadians(-entityLocation.getPitch())) * Math.sqrt(relativeLocation.getX() * relativeLocation.getX() + relativeLocation.getZ() * relativeLocation.getZ());
+                                        int neg = yDiff >= 0 ? 1 : -1;
+                                        rotatedLocation.setY(entityLocation.getY() + relativeLocation.getY() + neg * Math.min(Math.abs(yDiff), hologram.getMaxYDiff()));
+
                                         hologram.moveHologram(rotatedLocation, false);
                                     } else {
                                         // Rotate the relative location around the entity location using the pitch and yaw.

@@ -58,6 +58,7 @@ public class Hologram {
     private boolean setRelativePitch;
     private boolean setRelativeYaw;
     private int viewDistance = 70;
+    private double maxYDiff= 30;
 
     public Hologram(Location location, String... lines) {
         assert lines.length != 0 : "You need more lines than nothing!";
@@ -151,6 +152,10 @@ public class Hologram {
     boolean isVisible(Player player, Location loc) {
         return (getTarget() == HologramTarget.BLACKLIST != hasPlayer(player)) && loc.getWorld() == getLocation().getWorld()
                 && (loc.distance(getLocation()) <= viewDistance);
+    }
+
+    public double getMaxYDiff() {
+        return maxYDiff;
     }
 
     private void makeDestroyPacket() {
@@ -456,6 +461,11 @@ public class Hologram {
 
     public Hologram setVector(Vector vector) {
         this.moveVector = vector;
+        return this;
+    }
+
+    public Hologram setMaxYDiff(double max) {
+        this.maxYDiff = max;
         return this;
     }
 
