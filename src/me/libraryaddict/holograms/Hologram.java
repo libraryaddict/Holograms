@@ -311,6 +311,7 @@ public class Hologram {
     }
 
     public Hologram setFollowEntity(Entity entity, boolean isRemoveOnEntityDeath) {
+        setFollowEntity(entity, isRemoveOnEntityDeath, false, false, false);
         return this;
     }
 
