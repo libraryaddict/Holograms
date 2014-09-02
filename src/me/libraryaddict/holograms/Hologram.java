@@ -439,12 +439,17 @@ public class Hologram {
                             Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
                             entityIds.add(entry);
                             // Make create packets
-                            PacketContainer[] packets = this.makeSpawnPackets1_7(i, entry.getKey(), entry.getValue(), lines[i]);
+                            PacketContainer[] packets1_7 = this
+                                    .makeSpawnPackets1_7(i, entry.getKey(), entry.getValue(), lines[i]);
+                            PacketContainer packet1_8 = this.makeSpawnPacket1_8(i, entry.getKey(), lines[i]);
                             for (Player p : players) {
                                 try {
-                                    for (PacketContainer packet : packets) {
-                                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
-                                    }
+                                    if (is1_8(p))
+                                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet1_8, false);
+                                    else
+                                        for (PacketContainer packet : packets1_7) {
+                                            ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
+                                        }
                                 } catch (InvocationTargetException e) {
                                     e.printStackTrace();
                                 }
