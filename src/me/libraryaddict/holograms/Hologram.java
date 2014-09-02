@@ -206,7 +206,7 @@ public class Hologram {
         ints.write(0, witherId);
         ints.write(1, 30);
         ints.write(2, (int) (getLocation().getX() * 32));
-        ints.write(3, (int) ((location.getY() + -54.6 + ((double) height * (getLineSpacing() * 0.285))) * 32));
+        ints.write(3, (int) ((location.getY() + -53 + ((double) height * (getLineSpacing() * 0.285))) * 32));
         ints.write(4, (int) (getLocation().getZ() * 32));
         // Setup datawatcher for armor stand
         WrappedDataWatcher watcher = new WrappedDataWatcher();
