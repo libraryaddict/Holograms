@@ -7,8 +7,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -40,12 +42,15 @@ public class Hologram {
         return -1;
     }
 
-    private PacketContainer destroyPacket;
-    private PacketContainer[] displayPackets;
+    private PacketContainer destroyPacket1_7;
+    private PacketContainer destroyPacket1_8;
+    private PacketContainer[] displayPackets1_7;
+    private PacketContainer[] displayPackets1_8;
     private ArrayList<Entry<Integer, Integer>> entityIds = new ArrayList<Entry<Integer, Integer>>();
     protected Location entityLastLocation;
     private ArrayList<String> hologramPlayers = new ArrayList<String>();
     private HologramTarget hologramTarget = HologramTarget.BLACKLIST;
+    private HashMap<String, Boolean> is1_8 = new HashMap<String, Boolean>();
     private boolean keepAliveAfterEntityDies;
     private Location lastMovement = new Location(null, 0, 0, 0);
     private String[] lines;
@@ -78,12 +83,11 @@ public class Hologram {
         return this;
     }
 
-    PacketContainer getDestroyPacket() {
-        return destroyPacket;
-    }
-
-    PacketContainer[] getDisplayPackets() {
-        return displayPackets;
+    protected PacketContainer getDestroyPacket(Player player) {
+        if (is1_8(player)) {
+            return destroyPacket1_8;
+        }
+        return destroyPacket1_7;
     }
 
     public Entity getEntityFollowed() {
@@ -102,6 +106,10 @@ public class Hologram {
         return location.clone().subtract(0, 54.6, 0);
     }
 
+    public Vector getMovement() {
+        return moveVector;
+    }
+
     private ArrayList<Player> getPlayers() {
         ArrayList<Player> players = new ArrayList<Player>();
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -116,16 +124,25 @@ public class Hologram {
         return relativeToEntity;
     }
 
+    protected PacketContainer[] getSpawnPackets(Player player) {
+        if (is1_8(player)) {
+            return displayPackets1_8;
+        }
+        return displayPackets1_7;
+    }
+
     public HologramTarget getTarget() {
         return hologramTarget;
     }
 
-    public Vector getVector() {
-        return moveVector;
-    }
-
     public boolean hasPlayer(Player player) {
         return hologramPlayers.contains(player.getName());
+    }
+
+    private boolean is1_8(Player player) {
+        if (!is1_8.containsKey(player.getName()))
+            is1_8.put(player.getName(), ((CraftPlayer) player).getHandle().playerConnection.networkManager.getVersion() >= 28);
+        return is1_8.get(player.getName());
     }
 
     public boolean isInUse() {
@@ -155,29 +172,52 @@ public class Hologram {
 
     private void makeDestroyPacket() {
         int[] ids = new int[entityIds.size() * 2];
+        int[] ids2 = new int[ids.length / 2];
         int i = 0;
         for (Entry<Integer, Integer> entry : entityIds) {
+            ids2[i / 2] = entry.getKey();
             ids[i++] = entry.getKey();
             ids[i++] = entry.getValue();
         }
-        destroyPacket = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
-        destroyPacket.getIntegerArrays().write(0, ids);
+        destroyPacket1_7 = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
+        destroyPacket1_7.getIntegerArrays().write(0, ids);
+        destroyPacket1_8 = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
+        destroyPacket1_8.getIntegerArrays().write(0, ids2);
     }
 
     private void makeDisplayPackets() {
         Iterator<Entry<Integer, Integer>> itel = entityIds.iterator();
-        displayPackets = new PacketContainer[lines.length * 3];
-        for (int i = 0; i < displayPackets.length; i += 3) {
+        displayPackets1_7 = new PacketContainer[lines.length * 3];
+        displayPackets1_8 = new PacketContainer[lines.length];
+        for (int i = 0; i < displayPackets1_7.length; i += 3) {
             Entry<Integer, Integer> entry = itel.next();
-            PacketContainer[] packets = makeSpawnPackets(i / 3, entry.getKey(), entry.getValue(), lines[(lines.length - 1)
+            displayPackets1_8[i / 3] = makeSpawnPacket1_8(i / 3, entry.getKey(), lines[(lines.length - 1) - (i / 3)]);
+            PacketContainer[] packets = makeSpawnPackets1_7(i / 3, entry.getKey(), entry.getValue(), lines[(lines.length - 1)
                     - (i / 3)]);
             for (int a = 0; a < 3; a++) {
-                displayPackets[i + a] = packets[a];
+                displayPackets1_7[i + a] = packets[a];
             }
         }
     }
 
-    private PacketContainer[] makeSpawnPackets(int height, int witherId, int horseId, String horseName) {
+    private PacketContainer makeSpawnPacket1_8(int height, int witherId, String horseName) {
+        PacketContainer displayPacket = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY_LIVING);
+        StructureModifier<Integer> ints = displayPacket.getIntegers();
+        ints.write(0, witherId);
+        ints.write(1, 30);
+        ints.write(2, (int) (getLocation().getX() * 32));
+        ints.write(3, (int) ((location.getY() + -54.6 + ((double) height * (getLineSpacing() * 0.285))) * 32));
+        ints.write(4, (int) (getLocation().getZ() * 32));
+        // Setup datawatcher for armor stand
+        WrappedDataWatcher watcher = new WrappedDataWatcher();
+        watcher.setObject(0, (byte) 32);
+        watcher.setObject(2, horseName);
+        watcher.setObject(3, (byte) 1);
+        displayPacket.getDataWatcherModifier().write(0, watcher);
+        return displayPacket;
+    }
+
+    private PacketContainer[] makeSpawnPackets1_7(int height, int witherId, int horseId, String horseName) {
         PacketContainer[] displayPackets = new PacketContainer[3];
         // Spawn wither skull
         displayPackets[0] = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
@@ -235,29 +275,32 @@ public class Hologram {
                 if (!newPlayers.contains(p)) {
                     itel.remove();
                     try {
-                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, getDestroyPacket(), false);
+                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, getDestroyPacket(p), false);
                     } catch (InvocationTargetException e) {
                         e.printStackTrace();
                     }
                 }
             }
-            PacketContainer[] packets = null;
+            PacketContainer[] packets1_7 = null;
+            PacketContainer[] packets1_8 = null;
             if (!oldPlayers.isEmpty()) {
                 lastMovement.add(location.getX() - loc.getX(), location.getY() - loc.getY(), location.getZ() - loc.getZ());
                 int x = (int) Math.floor(32 * lastMovement.getX());
                 int y = (int) Math.floor(32 * lastMovement.getY());
                 int z = (int) Math.floor(32 * lastMovement.getZ());
-                packets = new PacketContainer[lines.length];
+                packets1_7 = new PacketContainer[lines.length];
+                packets1_8 = new PacketContainer[lines.length];
                 int i = 0;
                 if (x >= -128 && x < 128 && y >= -128 && y < 128 && z >= -128 && z < 128) {
                     lastMovement.subtract(x / 32D, y / 32D, z / 32D);
                     for (Entry<Integer, Integer> entityId : this.entityIds) {
-                        packets[i] = new PacketContainer(PacketType.Play.Server.REL_ENTITY_MOVE);
-                        packets[i].getIntegers().write(0, entityId.getKey());
-                        StructureModifier<Byte> bytes = packets[i].getBytes();
+                        packets1_7[i] = new PacketContainer(PacketType.Play.Server.REL_ENTITY_MOVE);
+                        packets1_7[i].getIntegers().write(0, entityId.getKey());
+                        StructureModifier<Byte> bytes = packets1_7[i].getBytes();
                         bytes.write(0, (byte) x);
                         bytes.write(1, (byte) y);
                         bytes.write(2, (byte) z);
+                        packets1_8[i] = packets1_7[i];
                         i++;
                     }
                 } else {
@@ -265,19 +308,23 @@ public class Hologram {
                     z = (int) Math.floor(32 * location.getZ());
                     lastMovement = new Location(null, location.getX() - (x / 32D), 0, location.getZ() - (z / 32D));
                     for (Entry<Integer, Integer> entityId : this.entityIds) {
-                        packets[i] = new PacketContainer(PacketType.Play.Server.ENTITY_TELEPORT);
-                        StructureModifier<Integer> ints = packets[i].getIntegers();
+                        packets1_7[i] = new PacketContainer(PacketType.Play.Server.ENTITY_TELEPORT);
+                        StructureModifier<Integer> ints = packets1_7[i].getIntegers();
                         ints.write(0, entityId.getKey());
                         ints.write(1, x);
                         ints.write(2, (int) Math.floor((location.getY() + ((double) i * (getLineSpacing() * 0.285))) * 32));
                         ints.write(3, z);
+                        packets1_8[i] = packets1_7[i].shallowClone();
+                        packets1_8[i].getIntegers().write(2,
+                                (int) Math.floor((location.getY() + -54.6 + ((double) i * (getLineSpacing() * 0.285))) * 32));
                         i++;
                     }
                 }
             }
             for (Player p : newPlayers) {
                 try {
-                    for (PacketContainer packet : oldPlayers.contains(p) ? packets : getDisplayPackets()) {
+                    for (PacketContainer packet : oldPlayers.contains(p) ? is1_8(p) ? packets1_8 : packets1_7
+                            : getSpawnPackets(p)) {
                         ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
                     }
                 } catch (InvocationTargetException e) {
@@ -296,6 +343,7 @@ public class Hologram {
     public Hologram removePlayer(Player... players) {
         for (Player player : players) {
             if (hologramPlayers.contains(player.getName())) {
+                is1_8.remove(player.getName());
                 hologramPlayers.remove(player.getName());
                 if (isInUse()) {
                     HologramCentral.removeHologram(player, this);
@@ -324,13 +372,9 @@ public class Hologram {
             entityLastLocation = entity.getLocation();
             Location l = entity.getLocation();
             if (setRelativeYaw || setRelativePitch) {
-                float yaw = 180 + (float) Math.toDegrees(Math.atan2(relativeToEntity.getX(), -relativeToEntity.getZ()));
-                float pitch = (float) Math.toDegrees(Math.atan2(
-                        -relativeToEntity.getY(),
-                        Math.sqrt((relativeToEntity.getX() * relativeToEntity.getX())
-                                + (relativeToEntity.getZ() * relativeToEntity.getZ()))));
-                relativeToEntity.setPitch(pitch - l.getPitch());
-                relativeToEntity.setYaw(yaw - l.getYaw());
+                // double pitch=-Math.atan2(l.getY(),Math.sqrt((Math.pow(l, b)))
+                relativeToEntity.setPitch(l.getPitch());
+                relativeToEntity.setYaw(l.getYaw());
                 this.setRelativePitch = setRelativePitch;
                 this.setRelativeYaw = setRelativeYaw;
                 this.pitchControlsMoreThanY = pitchControlsMoreThanY;
@@ -341,8 +385,11 @@ public class Hologram {
 
     public Hologram setLines(String... lines) {
         if (!this.lines.equals(lines)) {
-            String[] oldLines = this.lines;
+            String[] oldLines = this.lines.clone();
             this.lines = lines;
+            lines = lines.clone();
+            ArrayUtils.reverse(lines);
+            ArrayUtils.reverse(oldLines);
             if (isInUse()) {
                 int i = 0;
                 ArrayList<Player> players = getPlayers();
@@ -392,7 +439,7 @@ public class Hologram {
                             Entry<Integer, Integer> entry = new HashMap.SimpleEntry(getId(), getId());
                             entityIds.add(entry);
                             // Make create packets
-                            PacketContainer[] packets = this.makeSpawnPackets(i, entry.getKey(), entry.getValue(), lines[i]);
+                            PacketContainer[] packets = this.makeSpawnPackets1_7(i, entry.getKey(), entry.getValue(), lines[i]);
                             for (Player p : players) {
                                 try {
                                     for (PacketContainer packet : packets) {
@@ -433,6 +480,11 @@ public class Hologram {
         return this;
     }
 
+    public Hologram setMovement(Vector vector) {
+        this.moveVector = vector;
+        return this;
+    }
+
     public Hologram setRadius(int viewDistance) {
         assert viewDistance > 0 : "Why the hell are you setting the view distance to " + viewDistance + "?!?!";
         this.viewDistance = viewDistance;
@@ -456,11 +508,6 @@ public class Hologram {
                 HologramCentral.addHologram(this);
             }
         }
-        return this;
-    }
-
-    public Hologram setVector(Vector vector) {
-        this.moveVector = vector;
         return this;
     }
 

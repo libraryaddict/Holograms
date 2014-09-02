@@ -60,8 +60,6 @@ public class HologramCentral implements Listener {
                                         // The max height difference can be 30 for now.
                                         // TODO Calculate new X Z as a circle around the player
                                     } else {
-                                        toAdd = rotateRelative(r, (loc2.getYaw() + toAdd.getYaw()) + 90,
-                                                (loc2.getPitch() + toAdd.getPitch()) + 90);
                                         // TODO Calculate new X Y Z as a sphere.
                                     }
                                     toAdd.setWorld(loc2.getWorld());
@@ -71,8 +69,8 @@ public class HologramCentral implements Listener {
                             }
                         }
                     }
-                    if (hologram.getVector() != null) {
-                        hologram.moveHologram(hologram.getLocation().add(hologram.getVector()));
+                    if (hologram.getMovement() != null) {
+                        hologram.moveHologram(hologram.getLocation().add(hologram.getMovement()));
                     }
                 }
             }
@@ -92,7 +90,7 @@ public class HologramCentral implements Listener {
                     }
                     viewable.add(hologram);
                     try {
-                        for (PacketContainer packet : hologram.getDisplayPackets()) {
+                        for (PacketContainer packet : hologram.getSpawnPackets(p)) {
                             ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
                         }
                     } catch (InvocationTargetException e) {
@@ -113,7 +111,7 @@ public class HologramCentral implements Listener {
                 }
                 viewable.add(hologram);
                 try {
-                    for (PacketContainer packet : hologram.getDisplayPackets()) {
+                    for (PacketContainer packet : hologram.getSpawnPackets(p)) {
                         ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
                     }
                 } catch (InvocationTargetException e) {
@@ -137,7 +135,8 @@ public class HologramCentral implements Listener {
                     Player player = Bukkit.getPlayerExact(entry.getKey());
                     if (player != null) {
                         try {
-                            ProtocolLibrary.getProtocolManager().sendServerPacket(player, hologram.getDestroyPacket(), false);
+                            ProtocolLibrary.getProtocolManager().sendServerPacket(player, hologram.getDestroyPacket(player),
+                                    false);
                         } catch (InvocationTargetException e) {
                             e.printStackTrace();
                         }
@@ -157,7 +156,8 @@ public class HologramCentral implements Listener {
                     if (viewableHolograms.get(player.getName()).isEmpty()) {
                         viewableHolograms.remove(player.getName());
                         try {
-                            ProtocolLibrary.getProtocolManager().sendServerPacket(player, hologram.getDestroyPacket(), false);
+                            ProtocolLibrary.getProtocolManager().sendServerPacket(player, hologram.getDestroyPacket(player),
+                                    false);
                         } catch (InvocationTargetException e) {
                             e.printStackTrace();
                         }
@@ -167,14 +167,16 @@ public class HologramCentral implements Listener {
         }
     }
 
-    public static Location rotateRelative(double r, float yaw, float pitch) {
-        double sRadians = Math.toRadians(yaw);
-        double tRadians = Math.toRadians(pitch);
-
-        double x = r * Math.cos(sRadians) * Math.sin(tRadians);
-        double z = r * Math.sin(sRadians) * Math.sin(tRadians);
-        double y = r * Math.cos(tRadians);
-        return new Location(null, x, y, z);
+    public static Location rotate(Location loc, double yaw, double pitch) {
+        double x = loc.getX();
+        double y = loc.getY();
+        double z = loc.getZ();
+        yaw = Math.toRadians(yaw);
+        pitch = Math.toRadians(pitch);
+        double newX = x * Math.cos(yaw) - z * Math.sin(yaw);
+        double newZ = x * Math.sin(yaw) + z * Math.cos(yaw);
+        double newY = y * (yaw / 90);// ((y * cospitch) - (z * sinpitch));
+        return new Location(null, newX, newY, newZ);
     }
 
     private void doCheck(Player p, Location loc) {
@@ -188,7 +190,7 @@ public class HologramCentral implements Listener {
                 if (view) {
                     viewable.add(hologram);
                     try {
-                        for (PacketContainer packet : hologram.getDisplayPackets()) {
+                        for (PacketContainer packet : hologram.getSpawnPackets(p)) {
                             ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
                         }
                     } catch (InvocationTargetException e) {
@@ -197,7 +199,7 @@ public class HologramCentral implements Listener {
                 } else {
                     viewable.remove(hologram);
                     try {
-                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, hologram.getDestroyPacket(), false);
+                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, hologram.getDestroyPacket(p), false);
                     } catch (InvocationTargetException e) {
                         e.printStackTrace();
                     }
