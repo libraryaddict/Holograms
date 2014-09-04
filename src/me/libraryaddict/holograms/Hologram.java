@@ -50,7 +50,6 @@ public class Hologram {
     protected Location entityLastLocation;
     private ArrayList<String> hologramPlayers = new ArrayList<String>();
     private HologramTarget hologramTarget = HologramTarget.BLACKLIST;
-    private HashMap<String, Boolean> is1_8 = new HashMap<String, Boolean>();
     private boolean keepAliveAfterEntityDies;
     private Location lastMovement = new Location(null, 0, 0, 0);
     private String[] lines;
@@ -63,6 +62,10 @@ public class Hologram {
     private boolean setRelativePitch;
     private boolean setRelativeYaw;
     private int viewDistance = 70;
+
+    protected ArrayList<Entry<Integer, Integer>> getEntityIds() {
+        return entityIds;
+    }
 
     public Hologram(Location location, String... lines) {
         assert lines.length != 0 : "You need more lines than nothing!";
@@ -84,7 +87,7 @@ public class Hologram {
     }
 
     protected PacketContainer getDestroyPacket(Player player) {
-        if (is1_8(player)) {
+        if (HologramCentral.is1_8(player)) {
             return destroyPacket1_8;
         }
         return destroyPacket1_7;
@@ -125,7 +128,7 @@ public class Hologram {
     }
 
     protected PacketContainer[] getSpawnPackets(Player player) {
-        if (is1_8(player)) {
+        if (HologramCentral.is1_8(player)) {
             return displayPackets1_8;
         }
         return displayPackets1_7;
@@ -137,12 +140,6 @@ public class Hologram {
 
     public boolean hasPlayer(Player player) {
         return hologramPlayers.contains(player.getName());
-    }
-
-    private boolean is1_8(Player player) {
-        if (!is1_8.containsKey(player.getName()))
-            is1_8.put(player.getName(), ((CraftPlayer) player).getHandle().playerConnection.networkManager.getVersion() >= 28);
-        return is1_8.get(player.getName());
     }
 
     public boolean isInUse() {
@@ -206,7 +203,7 @@ public class Hologram {
         ints.write(0, witherId);
         ints.write(1, 30);
         ints.write(2, (int) (getLocation().getX() * 32));
-        ints.write(3, (int) ((location.getY() + -53 + ((double) height * (getLineSpacing() * 0.285))) * 32));
+        ints.write(3, (int) ((location.getY() + -56.7 + ((double) height * (getLineSpacing() * 0.285))) * 32));
         ints.write(4, (int) (getLocation().getZ() * 32));
         // Setup datawatcher for armor stand
         WrappedDataWatcher watcher = new WrappedDataWatcher();
@@ -316,14 +313,14 @@ public class Hologram {
                         ints.write(3, z);
                         packets1_8[i] = packets1_7[i].shallowClone();
                         packets1_8[i].getIntegers().write(2,
-                                (int) Math.floor((location.getY() + -54.6 + ((double) i * (getLineSpacing() * 0.285))) * 32));
+                                (int) Math.floor((location.getY() + -56.7 + ((double) i * (getLineSpacing() * 0.285))) * 32));
                         i++;
                     }
                 }
             }
             for (Player p : newPlayers) {
                 try {
-                    for (PacketContainer packet : oldPlayers.contains(p) ? is1_8(p) ? packets1_8 : packets1_7
+                    for (PacketContainer packet : oldPlayers.contains(p) ? HologramCentral.is1_8(p) ? packets1_8 : packets1_7
                             : getSpawnPackets(p)) {
                         ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
                     }
@@ -343,7 +340,6 @@ public class Hologram {
     public Hologram removePlayer(Player... players) {
         for (Player player : players) {
             if (hologramPlayers.contains(player.getName())) {
-                is1_8.remove(player.getName());
                 hologramPlayers.remove(player.getName());
                 if (isInUse()) {
                     HologramCentral.removeHologram(player, this);
@@ -397,18 +393,26 @@ public class Hologram {
                 for (; i < Math.min(entityIds.size(), lines.length); i++) {
                     if (oldLines.length <= i || !oldLines[i].equals(lines[i])) {
                         Entry<Integer, Integer> entry = entityIds.get(i);
-                        PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-                        packet.getIntegers().write(0, entry.getValue());
+                        PacketContainer packet1_7 = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
+                        packet1_7.getIntegers().write(0, entry.getValue());
                         ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
                         list.add(new WrappedWatchableObject(0, (byte) 0));
                         list.add(new WrappedWatchableObject(1, (short) 300));
                         list.add(new WrappedWatchableObject(10, lines[i]));
                         list.add(new WrappedWatchableObject(11, (byte) 1));
                         list.add(new WrappedWatchableObject(12, -1700000));
-                        packet.getWatchableCollectionModifier().write(0, list);
+                        packet1_7.getWatchableCollectionModifier().write(0, list);
+                        PacketContainer packet1_8 = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
+                        packet1_8.getIntegers().write(0, entry.getKey());
+                        list = new ArrayList<WrappedWatchableObject>();
+                        list.add(new WrappedWatchableObject(0, (byte) 32));
+                        list.add(new WrappedWatchableObject(2, lines[i]));
+                        list.add(new WrappedWatchableObject(3, (byte) 1));
+                        packet1_8.getWatchableCollectionModifier().write(0, list);
                         for (Player p : players) {
                             try {
-                                ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
+                                ProtocolLibrary.getProtocolManager().sendServerPacket(p,
+                                        HologramCentral.is1_8(p) ? packet1_8 : packet1_7, false);
                             } catch (InvocationTargetException e) {
                                 e.printStackTrace();
                             }
@@ -444,7 +448,7 @@ public class Hologram {
                             PacketContainer packet1_8 = this.makeSpawnPacket1_8(i, entry.getKey(), lines[i]);
                             for (Player p : players) {
                                 try {
-                                    if (is1_8(p))
+                                    if (HologramCentral.is1_8(p))
                                         ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet1_8, false);
                                     else
                                         for (PacketContainer packet : packets1_7) {
