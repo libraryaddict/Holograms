@@ -184,12 +184,15 @@ public class Hologram {
     private void makeDisplayPackets() {
         Iterator<Entry<Integer, Integer>> itel = entityIds.iterator();
         displayPackets1_7 = new PacketContainer[lines.length * 3];
-        displayPackets1_8 = new PacketContainer[lines.length];
+        displayPackets1_8 = new PacketContainer[lines.length * 2];
         int b = 0;
         while (itel.hasNext()) {
             Entry<Integer, Integer> entry = itel.next();
-            displayPackets1_8[b] = makeSpawnPacket1_8(b, entry.getKey(), lines[(lines.length - 1) - b]);
-            PacketContainer[] packets = makeSpawnPackets1_7(b, entry.getKey(), entry.getValue(), lines[(lines.length - 1) - b]);
+            PacketContainer[] packets = makeSpawnPacket1_8(b, entry.getKey(), lines[(lines.length - 1) - b]);
+            for (int a = 0; a < 2; a++) {
+                displayPackets1_8[b + a] = packets[a];
+            }
+            packets = makeSpawnPackets1_7(b, entry.getKey(), entry.getValue(), lines[(lines.length - 1) - b]);
             for (int a = 0; a < 3; a++) {
                 displayPackets1_7[(b * 3) + a] = packets[a];
             }
@@ -197,21 +200,24 @@ public class Hologram {
         }
     }
 
-    private PacketContainer makeSpawnPacket1_8(int height, int witherId, String horseName) {
-        PacketContainer displayPacket = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY_LIVING);
-        StructureModifier<Integer> ints = displayPacket.getIntegers();
+    private PacketContainer[] makeSpawnPacket1_8(int height, int witherId, String horseName) {
+        PacketContainer[] packets = new PacketContainer[2];
+        packets[0] = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
+        StructureModifier<Integer> ints = packets[0].getIntegers();
         ints.write(0, witherId);
-        ints.write(1, 30);
-        ints.write(2, (int) (getLocation().getX() * 32));
-        ints.write(3, (int) ((location.getY() + -56.7 + ((double) height * (getLineSpacing() * 0.285))) * 32));
-        ints.write(4, (int) (getLocation().getZ() * 32));
+        ints.write(1, (int) (getLocation().getX() * 32));
+        ints.write(2, (int) ((location.getY() + -56.7 + ((double) height * (getLineSpacing() * 0.285))) * 32));
+        ints.write(3, (int) (getLocation().getZ() * 32));
+        ints.write(9, 66);
         // Setup datawatcher for armor stand
-        WrappedDataWatcher watcher = new WrappedDataWatcher();
-        watcher.setObject(0, (byte) 32);
-        watcher.setObject(2, horseName);
-        watcher.setObject(3, (byte) 1);
-        displayPacket.getDataWatcherModifier().write(0, watcher);
-        return displayPacket;
+        packets[1] = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
+        packets[1].getIntegers().write(0, witherId);
+        ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
+        list.add(new WrappedWatchableObject(0, (byte) 0));
+        list.add(new WrappedWatchableObject(2, horseName));
+        list.add(new WrappedWatchableObject(3, (byte) 1));
+        packets[1].getWatchableCollectionModifier().write(0, list);
+        return packets;
     }
 
     private PacketContainer[] makeSpawnPackets1_7(int height, int witherId, int horseId, String horseName) {
@@ -445,11 +451,13 @@ public class Hologram {
                             // Make create packets
                             PacketContainer[] packets1_7 = this
                                     .makeSpawnPackets1_7(i, entry.getKey(), entry.getValue(), lines[i]);
-                            PacketContainer packet1_8 = this.makeSpawnPacket1_8(i, entry.getKey(), lines[i]);
+                            PacketContainer[] packet1_8 = this.makeSpawnPacket1_8(i, entry.getKey(), lines[i]);
                             for (Player p : players) {
                                 try {
                                     if (HologramCentral.is1_8(p))
-                                        ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet1_8, false);
+                                        for (PacketContainer packet : packet1_8) {
+                                            ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
+                                        }
                                     else
                                         for (PacketContainer packet : packets1_7) {
                                             ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
