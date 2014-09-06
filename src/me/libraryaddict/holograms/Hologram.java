@@ -411,7 +411,7 @@ public class Hologram {
                         PacketContainer packet1_8 = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
                         packet1_8.getIntegers().write(0, entry.getKey());
                         list = new ArrayList<WrappedWatchableObject>();
-                        list.add(new WrappedWatchableObject(0, (byte) 32));
+                        list.add(new WrappedWatchableObject(0, (byte) 0));
                         list.add(new WrappedWatchableObject(2, lines[i]));
                         list.add(new WrappedWatchableObject(3, (byte) 1));
                         packet1_8.getWatchableCollectionModifier().write(0, list);
