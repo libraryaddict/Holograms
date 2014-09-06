@@ -10,7 +10,6 @@ import java.util.Map.Entry;
 import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -186,14 +185,15 @@ public class Hologram {
         Iterator<Entry<Integer, Integer>> itel = entityIds.iterator();
         displayPackets1_7 = new PacketContainer[lines.length * 3];
         displayPackets1_8 = new PacketContainer[lines.length];
-        for (int i = 0; i < displayPackets1_7.length; i += 3) {
+        int b = 0;
+        while (itel.hasNext()) {
             Entry<Integer, Integer> entry = itel.next();
-            displayPackets1_8[i / 3] = makeSpawnPacket1_8(i / 3, entry.getKey(), lines[(lines.length - 1) - (i / 3)]);
-            PacketContainer[] packets = makeSpawnPackets1_7(i / 3, entry.getKey(), entry.getValue(), lines[(lines.length - 1)
-                    - (i / 3)]);
+            displayPackets1_8[b] = makeSpawnPacket1_8(b, entry.getKey(), lines[(lines.length - 1) - b]);
+            PacketContainer[] packets = makeSpawnPackets1_7(b, entry.getKey(), entry.getValue(), lines[(lines.length - 1) - b]);
             for (int a = 0; a < 3; a++) {
-                displayPackets1_7[i + a] = packets[a];
+                displayPackets1_7[(b * 3) + a] = packets[a];
             }
+            b++;
         }
     }
 
