@@ -4,44 +4,25 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
-
-import net.minecraft.server.v1_7_R4.EntityPlayer;
-import net.minecraft.server.v1_7_R4.EnumEntityUseAction;
-import net.minecraft.server.v1_7_R4.EnumGamemode;
-import net.minecraft.server.v1_7_R4.EnumMovingObjectType;
-import net.minecraft.server.v1_7_R4.MathHelper;
-import net.minecraft.server.v1_7_R4.MovingObjectPosition;
-import net.minecraft.server.v1_7_R4.Vec3D;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_7_R4.inventory.CraftItemStack;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
-
-import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.events.PacketEvent;
-import com.comphenix.protocol.wrappers.EnumWrappers.EntityUseAction;
 
 public class HologramCentral implements Listener {
 
@@ -97,125 +78,6 @@ public class HologramCentral implements Listener {
             }
         };
         runnable.runTaskTimer(plugin, 0, 0);
-        System.out.print("1");
-        ProtocolLibrary.getProtocolManager().getAsynchronousManager()
-                .registerAsyncHandler(new PacketAdapter(plugin, PacketType.Play.Client.USE_ENTITY) {
-                    // Source:
-                    // [url]http://www.gamedev.net/topic/338987-aabb---line-segment-intersection-test/[/url]
-                    private boolean hasIntersection(Vector3D p1, Vector3D p2, Vector3D min, Vector3D max) {
-                        final double epsilon = 0.0001f;
-
-                        Vector3D d = p2.subtract(p1).multiply(0.5);
-                        Vector3D e = max.subtract(min).multiply(0.5);
-                        Vector3D c = p1.add(d).subtract(min.add(max).multiply(0.5));
-                        Vector3D ad = d.abs();
-
-                        if (Math.abs(c.x) > e.x + ad.x)
-                            return false;
-                        if (Math.abs(c.y) > e.y + ad.y)
-                            return false;
-                        if (Math.abs(c.z) > e.z + ad.z)
-                            return false;
-
-                        if (Math.abs(d.y * c.z - d.z * c.y) > e.y * ad.z + e.z * ad.y + epsilon)
-                            return false;
-                        if (Math.abs(d.z * c.x - d.x * c.z) > e.z * ad.x + e.x * ad.z + epsilon)
-                            return false;
-                        if (Math.abs(d.x * c.y - d.y * c.x) > e.x * ad.y + e.y * ad.x + epsilon)
-                            return false;
-
-                        return true;
-                    }
-
-                    @Override
-                    public void onPacketReceiving(PacketEvent event) {
-                        if (is1_8(event.getPlayer())) {
-                            Player p = event.getPlayer();
-                            if (viewableHolograms.containsKey(p.getName())) {
-                                int entityId = event.getPacket().getIntegers().read(0);
-                                for (Hologram hologram : viewableHolograms.get(p.getName())) {
-                                    for (Entry<Integer, Integer> entry : hologram.getEntityIds()) {
-                                        if (entityId == entry.getKey()) {
-                                            EntityPlayer player = ((CraftPlayer) p).getHandle();
-                                            {
-                                                final int ATTACK_REACH = 4;
-
-                                                Player observer = event.getPlayer();
-                                                Location observerPos = observer.getEyeLocation();
-                                                Vector3D observerDir = new Vector3D(observerPos.getDirection());
-
-                                                Vector3D observerStart = new Vector3D(observerPos);
-                                                Vector3D observerEnd = observerStart.add(observerDir.multiply(ATTACK_REACH));
-
-                                                Entity hit = null;
-
-                                                // Get nearby entities
-                                                for (Entity entity : observer.getWorld().getLivingEntities()) {
-                                                    // No need to simulate an attack if the player is already visible
-                                                    if (entity != observer
-                                                            && (!(entity instanceof Player) || observer.canSee(((Player) entity)))) {
-                                                        // Bounding box of the given player
-                                                        Vector3D targetPos = new Vector3D(entity.getLocation());
-                                                        Vector3D minimum = targetPos.add(-0.5, 0, -0.5);
-                                                        Vector3D maximum = targetPos.add(0.5, 1.67, 0.5);
-
-                                                        if (hasIntersection(observerStart, observerEnd, minimum, maximum)) {
-                                                            if (hit == null
-                                                                    || hit.getLocation().distanceSquared(observerPos) > entity
-                                                                            .getLocation().distanceSquared(observerPos)) {
-                                                                hit = entity;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                if (hit != null) {
-                                                    event.getPacket().getIntegers().write(0, hit.getEntityId());
-                                                    return;
-                                                }
-                                            }
-                                            {
-                                                float f = 1.0F;
-                                                float f1 = player.lastPitch + (player.pitch - player.lastPitch) * f;
-                                                float f2 = player.lastYaw + (player.yaw - player.lastYaw) * f;
-                                                double d0 = player.lastX + (player.locX - player.lastX) * f;
-                                                double d1 = player.lastY + (player.locY - player.lastY) * f + 1.62D
-                                                        - player.height;
-                                                double d2 = player.lastZ + (player.locZ - player.lastZ) * f;
-                                                Vec3D vec3d = Vec3D.a(d0, d1, d2);
-
-                                                float f3 = MathHelper.cos(-f2 * 0.01745329F - 3.141593F);
-                                                float f4 = MathHelper.sin(-f2 * 0.01745329F - 3.141593F);
-                                                float f5 = -MathHelper.cos(-f1 * 0.01745329F);
-                                                float f6 = MathHelper.sin(-f1 * 0.01745329F);
-                                                float f7 = f4 * f5;
-                                                float f8 = f3 * f5;
-                                                double d3 = player.playerInteractManager.getGameMode() == EnumGamemode.CREATIVE ? 5.0D
-                                                        : 4.5D;
-                                                Vec3D vec3d1 = vec3d.add(f7 * d3, f6 * d3, f8 * d3);
-                                                Vector vec = new Vector(vec3d1.a - vec3d.a, vec3d1.b - vec3d.b, vec3d1.c
-                                                        - vec3d.c).normalize();
-                                                vec3d.a -= vec.getX() * 0.8;
-                                                vec3d.b -= vec.getY();
-                                                vec3d.c -= vec.getZ() * 0.8;
-                                                MovingObjectPosition mov = player.world.rayTrace(vec3d, vec3d1, true);
-                                                if (mov != null && mov.type == EnumMovingObjectType.BLOCK) {
-                                                    Object obj = event.getPacket().getModifier().read(1);
-                                                    if (obj != null && obj == EnumEntityUseAction.ATTACK) {
-                                                        player.playerInteractManager.dig(mov.b, mov.c, mov.d, 0);
-                                                    } else {
-                                                        player.playerInteractManager.interact(player, player.world,
-                                                                CraftItemStack.asNMSCopy(p.getItemInHand()), mov.b, mov.c, mov.d,
-                                                                1, 0, 1, 0.06F);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }).syncStart();
     }
 
     static boolean is1_8(Player player) {
