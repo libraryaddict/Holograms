@@ -206,7 +206,7 @@ public class Hologram {
         StructureModifier<Integer> ints = packets[0].getIntegers();
         ints.write(0, witherId);
         ints.write(1, (int) (getLocation().getX() * 32));
-        ints.write(2, (int) ((location.getY() + -54.6 + ((double) height * (getLineSpacing() * 0.285))) * 32));
+        ints.write(2, (int) ((location.getY() + -55.15 + ((double) height * (getLineSpacing() * 0.285))) * 32));
         ints.write(3, (int) (getLocation().getZ() * 32));
         ints.write(9, 66);
         // Setup datawatcher for wither skull
@@ -319,7 +319,7 @@ public class Hologram {
                         ints.write(3, z);
                         packets1_8[i] = packets1_7[i].shallowClone();
                         packets1_8[i].getIntegers().write(2,
-                                (int) Math.floor((location.getY() + -54.6 + ((double) i * (getLineSpacing() * 0.285))) * 32));
+                                (int) Math.floor((location.getY() + -55.15 + ((double) i * (getLineSpacing() * 0.285))) * 32));
                         i++;
                     }
                 }
