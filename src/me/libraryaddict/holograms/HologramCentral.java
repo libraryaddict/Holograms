@@ -27,12 +27,14 @@ import com.comphenix.protocol.events.PacketContainer;
 public class HologramCentral implements Listener {
 
     private static ArrayList<Hologram> holograms = new ArrayList<Hologram>();
+    private static HashMap<String, Boolean> is1_8 = new HashMap<String, Boolean>();
+    private static boolean isWitherSkulls = true;
+    private static Plugin plugin;
+
     /**
      * A list of holograms each player is currently seeing
      */
     private static HashMap<String, ArrayList<Hologram>> viewableHolograms = new HashMap<String, ArrayList<Hologram>>();
-    private static Plugin plugin;
-
     static {
         plugin = Bukkit.getPluginManager().getPlugins()[0];
         Bukkit.getPluginManager().registerEvents(new HologramCentral(), plugin);
@@ -80,14 +82,6 @@ public class HologramCentral implements Listener {
         runnable.runTaskTimer(plugin, 0, 0);
     }
 
-    static boolean is1_8(Player player) {
-        if (!is1_8.containsKey(player.getName()))
-            is1_8.put(player.getName(), ((CraftPlayer) player).getHandle().playerConnection.networkManager.getVersion() >= 28);
-        return is1_8.get(player.getName());
-    }
-
-    private static HashMap<String, Boolean> is1_8 = new HashMap<String, Boolean>();
-
     static void addHologram(Hologram hologram) {
         if (!holograms.contains(hologram)) {
             holograms.add(hologram);
@@ -131,8 +125,18 @@ public class HologramCentral implements Listener {
         }
     }
 
+    static boolean is1_8(Player player) {
+        if (!is1_8.containsKey(player.getName()))
+            is1_8.put(player.getName(), ((CraftPlayer) player).getHandle().playerConnection.networkManager.getVersion() >= 28);
+        return is1_8.get(player.getName());
+    }
+
     static boolean isInUse(Hologram hologram) {
         return holograms.contains(hologram);
+    }
+
+    public static boolean isUsingWitherSkulls() {
+        return isWitherSkulls;
     }
 
     static void removeHologram(Hologram hologram) {
@@ -187,6 +191,10 @@ public class HologramCentral implements Listener {
         double newZ = x * Math.sin(yaw) + z * Math.cos(yaw);
         double newY = y * (yaw / 90);// ((y * cospitch) - (z * sinpitch));
         return new Location(null, newX, newY, newZ);
+    }
+
+    public static void setUsingWitherSkulls(boolean usingSkulls) {
+        isWitherSkulls = usingSkulls;
     }
 
     private void doCheck(Player p, Location loc) {

@@ -49,6 +49,7 @@ public class Hologram {
     protected Location entityLastLocation;
     private ArrayList<String> hologramPlayers = new ArrayList<String>();
     private HologramTarget hologramTarget = HologramTarget.BLACKLIST;
+    private boolean isUsingWitherSkull = !HologramCentral.isUsingWitherSkulls();
     private boolean keepAliveAfterEntityDies;
     private Location lastMovement = new Location(null, 0, 0, 0);
     private String[] lines;
@@ -61,10 +62,6 @@ public class Hologram {
     private boolean setRelativePitch;
     private boolean setRelativeYaw;
     private int viewDistance = 70;
-
-    protected ArrayList<Entry<Integer, Integer>> getEntityIds() {
-        return entityIds;
-    }
 
     public Hologram(Location location, String... lines) {
         assert lines.length != 0 : "You need more lines than nothing!";
@@ -94,6 +91,10 @@ public class Hologram {
 
     public Entity getEntityFollowed() {
         return relativeEntity;
+    }
+
+    protected ArrayList<Entry<Integer, Integer>> getEntityIds() {
+        return entityIds;
     }
 
     public String[] getLines() {
@@ -161,6 +162,14 @@ public class Hologram {
         return this.keepAliveAfterEntityDies;
     }
 
+    public boolean isUsingArmorStand() {
+        return !this.isUsingWitherSkull;
+    }
+
+    public boolean isUsingWitherSkull() {
+        return this.isUsingWitherSkull;
+    }
+
     boolean isVisible(Player player, Location loc) {
         return (getTarget() == HologramTarget.BLACKLIST != hasPlayer(player)) && loc.getWorld() == getLocation().getWorld()
                 && (loc.distance(getLocation()) <= viewDistance);
@@ -184,12 +193,12 @@ public class Hologram {
     private void makeDisplayPackets() {
         Iterator<Entry<Integer, Integer>> itel = entityIds.iterator();
         displayPackets1_7 = new PacketContainer[lines.length * 3];
-        displayPackets1_8 = new PacketContainer[lines.length * 2];
+        displayPackets1_8 = new PacketContainer[lines.length * (this.isUsingWitherSkull() ? 2 : 1)];
         int b = 0;
         while (itel.hasNext()) {
             Entry<Integer, Integer> entry = itel.next();
             PacketContainer[] packets = makeSpawnPacket1_8(b, entry.getKey(), lines[(lines.length - 1) - b]);
-            for (int a = 0; a < 2; a++) {
+            for (int a = 0; a < (this.isUsingWitherSkull() ? 2 : 1); a++) {
                 displayPackets1_8[b + a] = packets[a];
             }
             packets = makeSpawnPackets1_7(b, entry.getKey(), entry.getValue(), lines[(lines.length - 1) - b]);
@@ -201,23 +210,40 @@ public class Hologram {
     }
 
     private PacketContainer[] makeSpawnPacket1_8(int height, int witherId, String horseName) {
-        PacketContainer[] packets = new PacketContainer[2];
-        packets[0] = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
-        StructureModifier<Integer> ints = packets[0].getIntegers();
-        ints.write(0, witherId);
-        ints.write(1, (int) (getLocation().getX() * 32));
-        ints.write(2, (int) ((location.getY() + -55.15 + ((double) height * (getLineSpacing() * 0.285))) * 32));
-        ints.write(3, (int) (getLocation().getZ() * 32));
-        ints.write(9, 66);
-        // Setup datawatcher for wither skull
-        packets[1] = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-        packets[1].getIntegers().write(0, witherId);
-        ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
-        list.add(new WrappedWatchableObject(0, (byte) 0));
-        list.add(new WrappedWatchableObject(2, horseName));
-        list.add(new WrappedWatchableObject(3, (byte) 1));
-        packets[1].getWatchableCollectionModifier().write(0, list);
-        return packets;
+        if (this.isUsingWitherSkull()) {
+            PacketContainer[] packets = new PacketContainer[2];
+            packets[0] = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
+            StructureModifier<Integer> ints = packets[0].getIntegers();
+            ints.write(0, witherId);
+            ints.write(1, (int) (getLocation().getX() * 32));
+            ints.write(2, (int) ((location.getY() + -55.15 + ((double) height * (getLineSpacing() * 0.285))) * 32));
+            ints.write(3, (int) (getLocation().getZ() * 32));
+            ints.write(9, 66);
+            // Setup datawatcher for wither skull
+            packets[1] = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
+            packets[1].getIntegers().write(0, witherId);
+            ArrayList<WrappedWatchableObject> list = new ArrayList<WrappedWatchableObject>();
+            list.add(new WrappedWatchableObject(0, (byte) 0));
+            list.add(new WrappedWatchableObject(2, horseName));
+            list.add(new WrappedWatchableObject(3, (byte) 1));
+            packets[1].getWatchableCollectionModifier().write(0, list);
+            return packets;
+        } else {
+            PacketContainer displayPacket = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY_LIVING);
+            StructureModifier<Integer> ints = displayPacket.getIntegers();
+            ints.write(0, witherId);
+            ints.write(1, 30);
+            ints.write(2, (int) (getLocation().getX() * 32));
+            ints.write(3, (int) ((location.getY() + -56.7 + ((double) height * (getLineSpacing() * 0.285))) * 32));
+            ints.write(4, (int) (getLocation().getZ() * 32));
+            // Setup datawatcher for armor stand
+            WrappedDataWatcher watcher = new WrappedDataWatcher();
+            watcher.setObject(0, (byte) 32);
+            watcher.setObject(2, horseName);
+            watcher.setObject(3, (byte) 1);
+            displayPacket.getDataWatcherModifier().write(0, watcher);
+            return new PacketContainer[] { displayPacket };
+        }
     }
 
     private PacketContainer[] makeSpawnPackets1_7(int height, int witherId, int horseId, String horseName) {
@@ -525,6 +551,20 @@ public class Hologram {
                 HologramCentral.addHologram(this);
             }
         }
+        return this;
+    }
+
+    public Hologram setUsingArmorStand() {
+        this.isUsingWitherSkull = true;
+        this.makeDisplayPackets();
+        // TODO Resend packets
+        return this;
+    }
+
+    public Hologram setUsingWitherSkull() {
+        this.isUsingWitherSkull = false;
+        this.makeDisplayPackets();
+        // TODO Resend packets
         return this;
     }
 
