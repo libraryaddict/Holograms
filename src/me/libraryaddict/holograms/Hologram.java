@@ -49,7 +49,7 @@ public class Hologram {
     protected Location entityLastLocation;
     private ArrayList<String> hologramPlayers = new ArrayList<String>();
     private HologramTarget hologramTarget = HologramTarget.BLACKLIST;
-    private boolean isUsingWitherSkull = !HologramCentral.isUsingWitherSkulls();
+    private boolean isUsingWitherSkull = HologramCentral.isUsingWitherSkulls();
     private boolean keepAliveAfterEntityDies;
     private Location lastMovement = new Location(null, 0, 0, 0);
     private String[] lines;
@@ -437,7 +437,7 @@ public class Hologram {
                         PacketContainer packet1_8 = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
                         packet1_8.getIntegers().write(0, entry.getKey());
                         list = new ArrayList<WrappedWatchableObject>();
-                        list.add(new WrappedWatchableObject(0, (byte) 0));
+                        list.add(new WrappedWatchableObject(0, (byte) 32));
                         list.add(new WrappedWatchableObject(2, lines[i]));
                         list.add(new WrappedWatchableObject(3, (byte) 1));
                         packet1_8.getWatchableCollectionModifier().write(0, list);
