@@ -211,7 +211,7 @@ public class HologramCentral implements Listener {
                         for (PacketContainer packet : hologram.getSpawnPackets(p)) {
                             ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet, false);
                         }
-                    } catch (InvocationTargetException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 } else {

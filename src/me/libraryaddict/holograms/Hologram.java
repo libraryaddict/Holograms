@@ -190,7 +190,7 @@ public class Hologram {
         destroyPacket1_8.getIntegerArrays().write(0, ids2);
     }
 
-    private void makeDisplayPackets() {
+    private void makeSpawnPackets() {
         Iterator<Entry<Integer, Integer>> itel = entityIds.iterator();
         displayPackets1_7 = new PacketContainer[lines.length * 3];
         displayPackets1_8 = new PacketContainer[lines.length * (this.isUsingWitherSkull() ? 2 : 1)];
@@ -198,11 +198,11 @@ public class Hologram {
         while (itel.hasNext()) {
             Entry<Integer, Integer> entry = itel.next();
             PacketContainer[] packets = makeSpawnPacket1_8(b, entry.getKey(), lines[(lines.length - 1) - b]);
-            for (int a = 0; a < (this.isUsingWitherSkull() ? 2 : 1); a++) {
-                displayPackets1_8[b + a] = packets[a];
+            for (int a = 0; a < packets.length; a++) {
+                displayPackets1_8[(b * (this.isUsingWitherSkull() ? 2 : 1)) + a] = packets[a];
             }
             packets = makeSpawnPackets1_7(b, entry.getKey(), entry.getValue(), lines[(lines.length - 1) - b]);
-            for (int a = 0; a < 3; a++) {
+            for (int a = 0; a < packets.length; a++) {
                 displayPackets1_7[(b * 3) + a] = packets[a];
             }
             b++;
@@ -295,7 +295,7 @@ public class Hologram {
         // If packet is in use
         if (isInUse()) {
             // Make the new display packets
-            makeDisplayPackets();
+            makeSpawnPackets();
             ArrayList<Player> newPlayers = getPlayers();
             Iterator<Player> itel = oldPlayers.iterator();
             // Loop over the old players and send those who can't see the hologram at the new location a destroy packet
@@ -496,7 +496,7 @@ public class Hologram {
                     }
                     makeDestroyPacket();
                 }
-                makeDisplayPackets();
+                makeSpawnPackets();
             } else {
                 if (lines.length < entityIds.size()) {
                     while (entityIds.size() > lines.length) {
@@ -516,7 +516,7 @@ public class Hologram {
     public Hologram setLineSpacing(double newLineSpacing) {
         this.lineSpacing = newLineSpacing;
         if (isInUse()) {
-            makeDisplayPackets();
+            makeSpawnPackets();
             HologramCentral.removeHologram(this);
             HologramCentral.addHologram(this);
         }
@@ -556,15 +556,13 @@ public class Hologram {
 
     public Hologram setUsingArmorStand() {
         this.isUsingWitherSkull = true;
-        this.makeDisplayPackets();
-        // TODO Resend packets
+        // TODO Remake and resend packets
         return this;
     }
 
     public Hologram setUsingWitherSkull() {
         this.isUsingWitherSkull = false;
-        this.makeDisplayPackets();
-        // TODO Resend packets
+        // TODO Remake and resend packets
         return this;
     }
 
@@ -575,7 +573,7 @@ public class Hologram {
                 this.entityIds.add(new HashMap.SimpleEntry(getId(), entityId));
             }
             makeDestroyPacket();
-            makeDisplayPackets();
+            makeSpawnPackets();
             HologramCentral.addHologram(this);
         }
         return this;
